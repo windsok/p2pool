@@ -16,9 +16,6 @@ def check(bitcoind, net, args):
         raise deferral.RetrySilentlyException()
     
     version_check_result = net.VERSION_CHECK((yield bitcoind.rpc_getnetworkinfo())['version'])
-    blockchaininfo = yield bitcoind.rpc_getblockchaininfo()
-    global softforkrules
-    softforkrules = ['segwit','mweb'] if 'mweb' in blockchaininfo['softforks'] else ['segwit']
     if version_check_result == True: version_check_result = None # deprecated
     if version_check_result == False: version_check_result = 'Coin daemon too old! Upgrade!' # deprecated
     if version_check_result is not None:
@@ -51,10 +48,10 @@ def check(bitcoind, net, args):
 
 @deferral.retry('Error getting work from bitcoind:', 3)
 @defer.inlineCallbacks
-def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, feefifo=[], known_txs={}):
+def getwork(bitcoind, net, use_getblocktemplate=False, txidcache={}, feecache={}, feefifo=[], known_txs={}):
     def go():
         if use_getblocktemplate:
-            return bitcoind.rpc_getblocktemplate(dict(mode='template', rules=softforkrules))
+            return bitcoind.rpc_getblocktemplate(dict(mode='template', rules=['segwit','mweb'] if 'mweb' in getattr(net, 'SOFTFORKS_REQUIRED', set()) else ['segwit']))
         else:
             return bitcoind.rpc_getmemorypool()
     try:
@@ -140,7 +137,7 @@ def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, fee
         last_update=time.time(),
         use_getblocktemplate=use_getblocktemplate,
         latency=end - start,
-        mweb="01" + work['mweb'] if 'mweb' in work else '',
+        mweb='01' + work['mweb'] if 'mweb' in work else '',
     ))
 
 @deferral.retry('Error submitting primary block: (will retry)', 10, 10)
