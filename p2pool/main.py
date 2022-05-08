@@ -104,7 +104,7 @@ def main(args, net, datadir_path, merged_urls, worker_endpoint):
         print '''Testing bitcoind RPC connection to '%s' with username '%s'...''' % (url, args.bitcoind_rpc_username)
         bitcoind = jsonrpc.HTTPProxy(url, dict(Authorization='Basic ' + base64.b64encode(args.bitcoind_rpc_username + ':' + args.bitcoind_rpc_password)), timeout=30)
         yield helper.check(bitcoind, net, args)
-        temp_work = yield helper.getwork(bitcoind)
+        temp_work = yield helper.getwork(bitcoind, net)
         
         bitcoind_getinfo_var = variable.Variable(None)
         @defer.inlineCallbacks

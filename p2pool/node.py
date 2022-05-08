@@ -204,14 +204,14 @@ class Node(object):
         
         # BITCOIND WORK
         
-        self.bitcoind_work = variable.Variable((yield helper.getwork(self.bitcoind)))
+        self.bitcoind_work = variable.Variable((yield helper.getwork(self.bitcoind, self.net)))
 
         @defer.inlineCallbacks
         def work_poller():
             while stop_signal.times == 0:
                 flag = self.factory.new_block.get_deferred()
                 try:
-                    self.bitcoind_work.set((yield helper.getwork(self.bitcoind, self.bitcoind_work.value['use_getblocktemplate'], self.txidcache, self.feecache, self.feefifo, self.known_txs_var.value)))
+                    self.bitcoind_work.set((yield helper.getwork(self.bitcoind, self.net, self.bitcoind_work.value['use_getblocktemplate'], self.txidcache, self.feecache, self.feefifo, self.known_txs_var.value)))
                     self.check_and_purge_txs()
                 except:
                     log.err()
