@@ -469,7 +469,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                         if aux_work['merged_address']:
                             sub_meth = aux_work['merged_proxy'].rpc_submitauxblock
                         else:
-                            sub_meth = aux_work['merged_proxy'].rpc.getauxblock
+                            sub_meth = aux_work['merged_proxy'].rpc_getauxblock
                         df = deferral.retry('Error submitting merged block: (will retry)', 10, 10)(sub_meth)(
                             pack.IntType(256, 'big').pack(aux_work['hash']).encode('hex'),
                             bitcoin_data.aux_pow_type.pack(dict(
