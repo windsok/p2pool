@@ -28,3 +28,4 @@ TX_EXPLORER_URL_PREFIX = 'https://chain.so/tx/LTCTEST/'
 SANE_TARGET_RANGE = (1<<128-1, 1<<240-1)
 DUMB_SCRYPT_DIFF = 2**16
 DUST_THRESHOLD = 1e8
+SOFTFORKS_REQUIRED = set(['bip65', 'csv', 'segwit', 'mweb'])

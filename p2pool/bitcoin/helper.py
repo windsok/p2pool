@@ -48,10 +48,10 @@ def check(bitcoind, net, args):
 
 @deferral.retry('Error getting work from bitcoind:', 3)
 @defer.inlineCallbacks
-def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, feefifo=[], known_txs={}):
+def getwork(bitcoind, net, use_getblocktemplate=False, txidcache={}, feecache={}, feefifo=[], known_txs={}):
     def go():
         if use_getblocktemplate:
-            return bitcoind.rpc_getblocktemplate(dict(mode='template', rules=['segwit']))
+            return bitcoind.rpc_getblocktemplate(dict(mode='template', rules=['segwit','mweb'] if 'mweb' in getattr(net, 'SOFTFORKS_REQUIRED', set()) else ['segwit']))
         else:
             return bitcoind.rpc_getmemorypool()
     try:
@@ -137,6 +137,7 @@ def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, fee
         last_update=time.time(),
         use_getblocktemplate=use_getblocktemplate,
         latency=end - start,
+        mweb='01' + work['mweb'] if 'mweb' in work else '',
     ))
 
 @deferral.retry('Error submitting primary block: (will retry)', 10, 10)
@@ -153,7 +154,7 @@ def submit_block_rpc(block, ignore_failure, bitcoind, bitcoind_work, net):
     segwit_activated = len(segwit_rules - set(bitcoind_work.value['rules'])) < len(segwit_rules)
     if bitcoind_work.value['use_getblocktemplate']:
         try:
-            result = yield bitcoind.rpc_submitblock((bitcoin_data.block_type if segwit_activated else bitcoin_data.stripped_block_type).pack(block).encode('hex'))
+            result = yield bitcoind.rpc_submitblock((bitcoin_data.block_type if segwit_activated else bitcoin_data.stripped_block_type).pack(block).encode('hex') + bitcoind_work.value['mweb'])
         except jsonrpc.Error_for_code(-32601): # Method not found, for older litecoin versions
             result = yield bitcoind.rpc_getblocktemplate(dict(mode='submit', data=bitcoin_data.block_type.pack(block).encode('hex')))
         success = result is None
