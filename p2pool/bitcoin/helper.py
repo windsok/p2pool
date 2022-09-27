@@ -22,18 +22,23 @@ def check(bitcoind, net, args):
         print >>sys.stderr, '    ' + version_check_result
         raise deferral.RetrySilentlyException()
     
-    try:
-        blockchaininfo = yield bitcoind.rpc_getblockchaininfo()
+    try:  # Working for Bitcoin Core 0.24 onwards
+        deploymentsinfo = yield bitcoind.rpc_getdeploymentinfo()
+        softforks_supported = set(item for item in deploymentsinfo.get('deployments', []))
+    except jsonrpc.Error_for_code(-32601): # Method not found -- Fallback for versions prior to Bitcoin Core 0.24
         try:
-            softforks_supported = set(item['id'] for item in blockchaininfo.get('softforks', [])) # not working with 0.19.0.1
-        except TypeError:
-            softforks_supported = set(item for item in blockchaininfo.get('softforks', [])) # fix for https://github.com/jtoomim/p2pool/issues/38
-        try:
-            softforks_supported |= set(item['id'] for item in blockchaininfo.get('bip9_softforks', []))
-        except TypeError: # https://github.com/bitcoin/bitcoin/pull/7863
-            softforks_supported |= set(item for item in blockchaininfo.get('bip9_softforks', []))
-    except jsonrpc.Error_for_code(-32601): # Method not found
-        softforks_supported = set()
+            blockchaininfo = yield bitcoind.rpc_getblockchaininfo()
+            try:
+                softforks_supported = set(item['id'] for item in blockchaininfo.get('softforks', [])) # not working with 0.19.0.1
+            except TypeError:
+                softforks_supported = set(item for item in blockchaininfo.get('softforks', [])) # fix for https://github.com/jtoomim/p2pool/issues/38
+            try:
+                softforks_supported |= set(item['id'] for item in blockchaininfo.get('bip9_softforks', []))
+            except TypeError: # https://github.com/bitcoin/bitcoin/pull/7863
+                softforks_supported |= set(item for item in blockchaininfo.get('bip9_softforks', []))
+        except jsonrpc.Error_for_code(-32601): # Method not found
+            softforks_supported = set()
+
     unsupported_forks = getattr(net, 'SOFTFORKS_REQUIRED', set()) - softforks_supported
     if unsupported_forks:
         print "You are running a coin daemon that does not support all of the "
